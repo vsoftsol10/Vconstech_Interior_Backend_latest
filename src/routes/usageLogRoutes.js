@@ -1,3 +1,4 @@
+// src/routes/usageLogRoutes.js
 import express from 'express';
 import { 
   getUsageLogs,
@@ -16,12 +17,25 @@ router.use(authenticateToken);
 router.get('/', getUsageLogs);
 
 // POST /api/usage-logs (Employee can create)
-router.post('/', createUsageLog);
+// 🔔 WITH WEBSOCKET SUPPORT
+router.post(
+  '/',
+  createUsageLog
+);
 
 // PUT /api/usage-logs/:id (Admin or creator)
-router.put('/:id', updateUsageLog);
+// 🔔 WITH WEBSOCKET SUPPORT
+router.put(
+  '/:id',
+  updateUsageLog
+);
 
 // DELETE /api/usage-logs/:id (Admin only)
-router.delete('/:id', authorizeRole('Admin'), deleteUsageLog);
+// 🔔 WITH WEBSOCKET SUPPORT
+router.delete(
+  '/:id',
+  authorizeRole('Admin'),
+  deleteUsageLog
+);
 
 export default router;

@@ -11,7 +11,7 @@ import {
   deletePayment,
   getLabourersByProject,
   getLabourStatistics
-} from '../controllers/labourController.js'; // ✅ Import from CONTROLLER, not service
+} from '../controllers/labourController.js';
 import { authenticateToken } from '../middlewares/authMiddlewares.js';
 
 const router = express.Router();
@@ -19,20 +19,38 @@ const router = express.Router();
 // Apply authentication to all routes
 router.use(authenticateToken);
 
-// Labour CRUD operations
+// ========== LABOUR CRUD OPERATIONS (No WebSocket) ==========
 router.get('/', getAllLabourers);
 router.get('/statistics', getLabourStatistics);
 router.get('/:id', getLabourerById);
+
+// Create labourer (no immediate spending impact)
 router.post('/', createLabourer);
+
+// Update labourer details (no immediate spending impact)
 router.put('/:id', updateLabourer);
+
+// Delete labourer (no immediate spending impact)
 router.delete('/:id', deleteLabourer);
 
-// Payment operations
-router.post('/:id/payments', addPayment);
-router.get('/:id/payments', getLabourerPayments);
-router.delete('/:labourId/payments/:paymentId', deletePayment);
+// ========== PAYMENT OPERATIONS (WITH WEBSOCKET) ==========
 
-// Project-specific operations
+// 💰 ADD PAYMENT - Triggers spending update
+router.post(
+  '/:id/payments',
+  addPayment
+);
+
+// Get payments (read-only, no WebSocket needed)
+router.get('/:id/payments', getLabourerPayments);
+
+// 💰 DELETE PAYMENT - Triggers spending update
+router.delete(
+  '/:labourId/payments/:paymentId',
+  deletePayment
+);
+
+// ========== PROJECT-SPECIFIC OPERATIONS ==========
 router.get('/project/:projectId', getLabourersByProject);
 
 export default router;

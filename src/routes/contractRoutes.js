@@ -25,12 +25,22 @@ router.get('/project/:projectId', getContractsByProject);
 router.get('/:id', getContractById);
 
 // POST create new contract
-router.post('/', createContract);
+router.post(
+  '/',
+  createContract
+);
 
-// PUT update contract
-router.put('/:id', updateContract);
+// PUT update contract (especially payment updates)
+
+router.put(
+  '/:id',
+  updateContract
+);
 
 // DELETE contract
-router.delete('/:id', deleteContract);
+router.delete(
+  '/:id',
+  deleteContract
+);
 
 export default router;

@@ -4,6 +4,8 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+
+
 import authRoutes from './src/routes/authRoute.js';
 import projectRoutes from './src/routes/projectRoute.js';
 import engineerRoutes from './src/routes/engineerRoute.js';
@@ -22,7 +24,7 @@ import financialRoutes from './src/routes/financialRoutes.js';
 // ✅ Contract Management Routes
 import contractRoutes from './src/routes/contractRoutes.js';
 
-// ✅ NEW: Labour Management Routes
+// ✅ Labour Management Routes
 import labourRoutes from './src/routes/labourRoutes.js';
 
 import { authenticateToken, authorizeRole } from './src/middlewares/authMiddlewares.js';
@@ -38,7 +40,7 @@ const app = express();
 const prisma = new PrismaClient();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
+// ========== MIDDLEWARE ==========
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -65,7 +67,7 @@ app.use('/api/financial', financialRoutes);
 // ========== CONTRACT MANAGEMENT ROUTES ==========
 app.use('/api/contracts', contractRoutes);
 
-// ========== NEW: LABOUR MANAGEMENT ROUTES ==========
+// ========== LABOUR MANAGEMENT ROUTES ==========
 app.use('/api/labours', labourRoutes);
 
 // ========== EXISTING ENDPOINTS ==========
@@ -121,11 +123,15 @@ app.get('/api/admin/users',
     }
   }
 );
-
 // Health check
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'OK', message: 'Server is running' });
+  res.status(200).json({ 
+    status: 'OK', 
+    message: 'Server is running'
+  });
 });
+
+
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -152,15 +158,35 @@ app.use((err, req, res, next) => {
 
 // Graceful shutdown
 process.on('SIGINT', async () => {
+  console.log('\n🛑 Shutting down gracefully...');
+  
+  // Close WebSocket connections
+  
+  
+  // Close database connection
+  await prisma.$disconnect();
+  console.log('✅ Database disconnected');
+  
+  process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+  console.log('\n🛑 SIGTERM received, shutting down...');
   await prisma.$disconnect();
   process.exit(0);
 });
 
+// ========== START SERVER ==========
 app.listen(PORT, () => {
-  console.log(`🚀 Server is running on port ${PORT}`);
-  console.log(`📊 API available at http://localhost:${PORT}/api`);
-  console.log(`💰 Financial API: http://localhost:${PORT}/api/financial`);
-  console.log(`👷 Labour API: http://localhost:${PORT}/api/labours`);
+  console.log(`
+╔════════════════════════════════════════════════════════════╗
+║  🚀 Server is running on port ${PORT}                         ║
+║  📊 API available at http://localhost:${PORT}/api            ║
+║  💰 Financial API: http://localhost:${PORT}/api/financial    ║
+║  👷 Labour API: http://localhost:${PORT}/api/labours         ║
+║  🌐 Client URL: ${process.env.CLIENT_URL || 'http://localhost:5173'}                    ║
+╚════════════════════════════════════════════════════════════╝
+  `);
 });
 
 export default app;

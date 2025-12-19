@@ -164,156 +164,174 @@ router.post('/projects', authenticateToken, async (req, res) => {
 });
 
 // ============ ADD EXPENSE TO PROJECT ============
-router.post('/projects/:id/expenses', authenticateToken, async (req, res) => {
-  try {
-    const projectId = parseInt(req.params.id);
-    const { category, amount } = req.body;
-    const companyId = req.user.companyId;
+router.post(
+  '/projects/:id/expenses',
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const { category, amount } = req.body;
+      const companyId = req.user.companyId;
 
-    // Validation
-    if (!category || !amount) {
-      return res.status(400).json({
+      // Validation
+      if (!category || !amount) {
+        return res.status(400).json({
+          success: false,
+          error: 'Category and amount are required'
+        });
+      }
+
+      // Verify project belongs to user's company
+      const project = await prisma.project.findFirst({
+        where: {
+          id: projectId,
+          companyId
+        }
+      });
+
+      if (!project) {
+        return res.status(404).json({
+          success: false,
+          error: 'Project not found'
+        });
+      }
+
+      // Create expense
+      const expense = await prisma.projectExpense.create({
+        data: {
+          projectId,
+          category,
+          amount: parseFloat(amount)
+        }
+      });
+
+      res.status(201).json({
+        success: true,
+        message: 'Expense added successfully',
+        expense: {
+          id: expense.id,
+          category: expense.category,
+          amount: expense.amount
+        },
+        projectId // ✅ IMPORTANT: Include projectId for middleware
+      });
+    } catch (error) {
+      console.error('Add expense error:', error);
+      res.status(500).json({
         success: false,
-        error: 'Category and amount are required'
+        error: 'Failed to add expense',
+        details: error.message
       });
     }
-
-    // Verify project belongs to user's company
-    const project = await prisma.project.findFirst({
-      where: {
-        id: projectId,
-        companyId
-      }
-    });
-
-    if (!project) {
-      return res.status(404).json({
-        success: false,
-        error: 'Project not found'
-      });
-    }
-
-    // Create expense
-    const expense = await prisma.projectExpense.create({
-      data: {
-        projectId,
-        category,
-        amount: parseFloat(amount)
-      }
-    });
-
-    res.status(201).json({
-      success: true,
-      message: 'Expense added successfully',
-      expense: {
-        id: expense.id,
-        category: expense.category,
-        amount: expense.amount
-      }
-    });
-  } catch (error) {
-    console.error('Add expense error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to add expense',
-      details: error.message
-    });
   }
-});
+);
 
 // ============ UPDATE EXPENSE ============
-router.put('/expenses/:id', authenticateToken, async (req, res) => {
-  try {
-    const expenseId = parseInt(req.params.id);
-    const { category, amount } = req.body;
-    const companyId = req.user.companyId;
+router.put(
+  '/expenses/:id',
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const expenseId = parseInt(req.params.id);
+      const { category, amount } = req.body;
+      const companyId = req.user.companyId;
 
-    // Validation
-    if (!category || !amount) {
-      return res.status(400).json({
+      // Validation
+      if (!category || !amount) {
+        return res.status(400).json({
+          success: false,
+          error: 'Category and amount are required'
+        });
+      }
+
+      // Verify expense belongs to user's company project
+      const expense = await prisma.projectExpense.findFirst({
+        where: { id: expenseId },
+        include: { project: true }
+      });
+
+      if (!expense || expense.project.companyId !== companyId) {
+        return res.status(404).json({
+          success: false,
+          error: 'Expense not found'
+        });
+      }
+
+      // Update expense
+      const updatedExpense = await prisma.projectExpense.update({
+        where: { id: expenseId },
+        data: {
+          category,
+          amount: parseFloat(amount)
+        }
+      });
+
+      res.json({
+        success: true,
+        message: 'Expense updated successfully',
+        expense: {
+          id: updatedExpense.id,
+          category: updatedExpense.category,
+          amount: updatedExpense.amount
+        },
+        projectId: expense.projectId // ✅ IMPORTANT: Include projectId for middleware
+      });
+    } catch (error) {
+      console.error('Update expense error:', error);
+      res.status(500).json({
         success: false,
-        error: 'Category and amount are required'
+        error: 'Failed to update expense',
+        details: error.message
       });
     }
-
-    // Verify expense belongs to user's company project
-    const expense = await prisma.projectExpense.findFirst({
-      where: { id: expenseId },
-      include: { project: true }
-    });
-
-    if (!expense || expense.project.companyId !== companyId) {
-      return res.status(404).json({
-        success: false,
-        error: 'Expense not found'
-      });
-    }
-
-    // Update expense
-    const updatedExpense = await prisma.projectExpense.update({
-      where: { id: expenseId },
-      data: {
-        category,
-        amount: parseFloat(amount)
-      }
-    });
-
-    res.json({
-      success: true,
-      message: 'Expense updated successfully',
-      expense: {
-        id: updatedExpense.id,
-        category: updatedExpense.category,
-        amount: updatedExpense.amount
-      }
-    });
-  } catch (error) {
-    console.error('Update expense error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to update expense',
-      details: error.message
-    });
   }
-});
+);
 
 // ============ DELETE EXPENSE ============
-router.delete('/expenses/:id', authenticateToken, async (req, res) => {
-  try {
-    const expenseId = parseInt(req.params.id);
-    const companyId = req.user.companyId;
+router.delete(
+  '/expenses/:id',
+  authenticateToken,
 
-    // Verify expense belongs to user's company project
-    const expense = await prisma.projectExpense.findFirst({
-      where: { id: expenseId },
-      include: { project: true }
-    });
+  async (req, res) => {
+    try {
+      const expenseId = parseInt(req.params.id);
+      const companyId = req.user.companyId;
 
-    if (!expense || expense.project.companyId !== companyId) {
-      return res.status(404).json({
+      // Verify expense belongs to user's company project
+      const expense = await prisma.projectExpense.findFirst({
+        where: { id: expenseId },
+        include: { project: true }
+      });
+
+      if (!expense || expense.project.companyId !== companyId) {
+        return res.status(404).json({
+          success: false,
+          error: 'Expense not found'
+        });
+      }
+
+      const projectId = expense.projectId; // ✅ Store projectId before deletion
+
+      // Delete expense
+      await prisma.projectExpense.delete({
+        where: { id: expenseId }
+      });
+
+      res.json({
+        success: true,
+        message: 'Expense deleted successfully',
+        projectId // ✅ IMPORTANT: Include projectId for middleware
+      });
+    } catch (error) {
+      console.error('Delete expense error:', error);
+      res.status(500).json({
         success: false,
-        error: 'Expense not found'
+        error: 'Failed to delete expense',
+        details: error.message
       });
     }
-
-    // Delete expense
-    await prisma.projectExpense.delete({
-      where: { id: expenseId }
-    });
-
-    res.json({
-      success: true,
-      message: 'Expense deleted successfully'
-    });
-  } catch (error) {
-    console.error('Delete expense error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to delete expense',
-      details: error.message
-    });
   }
-});
+);
 
 // ============ GET FINANCIAL SUMMARY ============
 router.get('/summary', authenticateToken, async (req, res) => {
