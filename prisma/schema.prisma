@@ -197,6 +197,7 @@ model Contract {
   contractorName String
   contactNumber  String
   contractAmount Float
+  paidAmount     Float    @default(0)  // ✅ ADD THIS
   workStatus     String
   details        String?
   startDate      DateTime
